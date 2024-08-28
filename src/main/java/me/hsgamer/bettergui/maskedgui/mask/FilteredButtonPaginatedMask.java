@@ -22,16 +22,14 @@ import me.hsgamer.bettergui.maskedgui.slot.WrappedMaskSlot;
 import me.hsgamer.bettergui.maskedgui.util.ButtonUtil;
 import me.hsgamer.bettergui.maskedgui.util.RequirementUtil;
 import me.hsgamer.bettergui.requirement.RequirementApplier;
+import me.hsgamer.bettergui.util.TickUtil;
 import me.hsgamer.hscore.collections.map.CaseInsensitiveStringLinkedMap;
 import me.hsgamer.hscore.common.MapUtils;
-import me.hsgamer.hscore.common.Validate;
-import me.hsgamer.hscore.minecraft.gui.GUIProperties;
 import me.hsgamer.hscore.minecraft.gui.button.Button;
 import me.hsgamer.hscore.minecraft.gui.mask.impl.ButtonPaginatedMask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -70,10 +68,8 @@ public class FilteredButtonPaginatedMask extends WrappedPaginatedMask<ButtonPagi
     protected ButtonPaginatedMask createPaginatedMask(Map<String, Object> section) {
         updateMillis = Optional.ofNullable(section.get("update"))
                 .map(String::valueOf)
-                .flatMap(Validate::getNumber)
-                .map(BigDecimal::longValue)
-                .map(ticks -> Math.max(ticks, 1) * GUIProperties.getMillisPerTick())
-                .map(millis -> Math.max(millis, 1L))
+                .flatMap(TickUtil::toMillis)
+                .filter(n -> n > 0)
                 .orElse(50L);
 
         ButtonUtil.createChildButtons(this, section)

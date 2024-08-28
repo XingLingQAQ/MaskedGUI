@@ -21,6 +21,7 @@ import me.hsgamer.bettergui.maskedgui.replacer.SimpleVariableValueReplacer;
 import me.hsgamer.bettergui.maskedgui.replacer.ValueReplacer;
 import me.hsgamer.bettergui.requirement.type.ConditionRequirement;
 import me.hsgamer.bettergui.util.StringReplacerApplier;
+import me.hsgamer.bettergui.util.TickUtil;
 import me.hsgamer.hscore.common.MapUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -120,9 +121,10 @@ public class PlayerListMask extends ValueListMask<UUID> {
         playerCondition = Optional.ofNullable(MapUtils.getIfFound(section, "player-condition"))
                 .map(o -> new ConditionRequirement(new RequirementBuilder.Input(getMenu(), "condition", getName() + "_player_condition", o)))
                 .orElse(null);
-        valueUpdateTicks = Optional.ofNullable(MapUtils.getIfFound(section, "player-update-ticks", "player-update"))
+        valueUpdateMillis = Optional.ofNullable(MapUtils.getIfFound(section, "player-update-ticks", "player-update"))
                 .map(String::valueOf)
-                .map(Long::parseLong)
-                .orElse(valueUpdateTicks);
+                .flatMap(TickUtil::toMillis)
+                .filter(n -> n > 0)
+                .orElse(valueUpdateMillis);
     }
 }

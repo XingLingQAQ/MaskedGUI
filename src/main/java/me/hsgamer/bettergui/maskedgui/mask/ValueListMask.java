@@ -25,17 +25,16 @@ import me.hsgamer.bettergui.maskedgui.util.RequirementUtil;
 import me.hsgamer.bettergui.requirement.RequirementApplier;
 import me.hsgamer.bettergui.requirement.type.ConditionRequirement;
 import me.hsgamer.bettergui.util.SchedulerUtil;
+import me.hsgamer.bettergui.util.TickUtil;
 import me.hsgamer.hscore.common.CollectionUtils;
 import me.hsgamer.hscore.common.MapUtils;
-import me.hsgamer.hscore.common.Validate;
-import me.hsgamer.hscore.minecraft.gui.GUIProperties;
 import me.hsgamer.hscore.minecraft.gui.button.Button;
 import me.hsgamer.hscore.minecraft.gui.mask.impl.ButtonPaginatedMask;
 import org.jetbrains.annotations.NotNull;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -47,7 +46,7 @@ public abstract class ValueListMask<T> extends WrappedPaginatedMask<ButtonPagina
     private final Map<T, ValueEntry<T>> valueEntryMap = new ConcurrentHashMap<>();
     private final Map<UUID, ValueListCache> playerListCacheMap = new ConcurrentHashMap<>();
     private final Function<Runnable, Task> scheduler;
-    protected long valueUpdateTicks = 20L;
+    protected long valueUpdateMillis = 1000L;
     protected long viewerUpdateMillis = 50L;
     private Map<String, Object> templateButton = Collections.emptyMap();
     private List<String> viewerConditionTemplate = Collections.emptyList();
@@ -62,7 +61,7 @@ public abstract class ValueListMask<T> extends WrappedPaginatedMask<ButtonPagina
 
     protected ValueListMask(MaskBuilder.Input input) {
         super(input);
-        this.scheduler = runnable -> SchedulerUtil.async().runTimer(runnable, 0L, valueUpdateTicks);
+        this.scheduler = runnable -> SchedulerUtil.async().runTimer(runnable, 0, valueUpdateMillis, TimeUnit.MILLISECONDS);
         this.valueReplacer = createValueReplacer();
     }
 
@@ -174,15 +173,14 @@ public abstract class ValueListMask<T> extends WrappedPaginatedMask<ButtonPagina
                 .orElse(Collections.emptyMap());
         viewerUpdateMillis = Optional.ofNullable(MapUtils.getIfFound(section, "viewer-update-ticks", "viewer-update"))
                 .map(String::valueOf)
-                .flatMap(Validate::getNumber)
-                .map(BigDecimal::longValue)
-                .map(ticks -> Math.max(ticks, 1) * GUIProperties.getMillisPerTick())
-                .map(millis -> Math.max(millis, 1L))
+                .flatMap(TickUtil::toMillis)
+                .filter(n -> n > 0)
                 .orElse(50L);
-        valueUpdateTicks = Optional.ofNullable(MapUtils.getIfFound(section, "value-update-ticks", "value-update"))
+        valueUpdateMillis = Optional.ofNullable(MapUtils.getIfFound(section, "value-update-ticks", "value-update"))
                 .map(String::valueOf)
-                .map(Long::parseLong)
-                .orElse(20L);
+                .flatMap(TickUtil::toMillis)
+                .filter(n -> n > 0)
+                .orElse(50L);
         this.configure(section);
         return new ButtonPaginatedMask(getName(), WrappedMaskSlot.of(section, this)) {
             @Override
