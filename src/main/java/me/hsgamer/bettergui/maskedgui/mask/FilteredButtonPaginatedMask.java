@@ -15,12 +15,14 @@
 */
 package me.hsgamer.bettergui.maskedgui.mask;
 
+import me.hsgamer.bettergui.api.button.BaseWrappedButton;
 import me.hsgamer.bettergui.api.button.WrappedButton;
 import me.hsgamer.bettergui.maskedgui.builder.MaskBuilder;
 import me.hsgamer.bettergui.maskedgui.slot.WrappedMaskSlot;
 import me.hsgamer.bettergui.maskedgui.util.ButtonUtil;
 import me.hsgamer.bettergui.maskedgui.util.RequirementUtil;
 import me.hsgamer.bettergui.requirement.RequirementApplier;
+import me.hsgamer.hscore.collections.map.CaseInsensitiveStringLinkedMap;
 import me.hsgamer.hscore.common.MapUtils;
 import me.hsgamer.hscore.common.Validate;
 import me.hsgamer.hscore.minecraft.gui.GUIProperties;
@@ -76,14 +78,20 @@ public class FilteredButtonPaginatedMask extends WrappedPaginatedMask<ButtonPagi
 
         ButtonUtil.createChildButtons(this, section)
                 .valueStream()
+                .peek(buttonWithInput -> buttonWithInput.button.init())
                 .map(buttonWithInput -> {
-                    RequirementApplier filterRequirementApplier = Optional.ofNullable(MapUtils.getIfFound(buttonWithInput.input.options, "filter-requirement"))
+                    Map<String, Object> options;
+                    if (buttonWithInput.button instanceof BaseWrappedButton<?>) {
+                        options = new CaseInsensitiveStringLinkedMap<>(((BaseWrappedButton<?>) buttonWithInput.button).getOptions());
+                    } else {
+                        options = buttonWithInput.input.options;
+                    }
+                    RequirementApplier filterRequirementApplier = Optional.ofNullable(MapUtils.getIfFound(options, "filter-requirement"))
                             .flatMap(MapUtils::castOptionalStringObjectMap)
                             .map(map -> new RequirementApplier(getMenu(), buttonWithInput.input.name + "_filter", map))
                             .orElse(null);
                     return new ButtonWithFilter(buttonWithInput.button, filterRequirementApplier);
                 })
-                .peek(buttonWithFilter -> buttonWithFilter.button.init())
                 .forEach(buttonWithFilterList::add);
 
         return new ButtonPaginatedMask(getName(), WrappedMaskSlot.of(section, this)) {
